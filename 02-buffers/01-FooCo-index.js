@@ -1,54 +1,77 @@
 // FooCo's main script.
 //
-// FooCo takes orders for multiple kinds of widgets from customers and
-// fulfills them.  Each widget may be in a different fulfillment center, so
-// this script breaks the order apart, and requests widgets from the
-// right fulfillment centers.
-//
-// All requests are purchase orders with this binary format:
-//
-// +--------------------------+--------------------------+
-// |                  Order ID (8 bytes)                 |
-// +--------------------------+--------------------------+
-// |   Widget Type (4 bytes)  |    Quantity (4 bytes)    |
-// +--------------------------+--------------------------+
-//                           ...
-// +--------------------------+--------------------------+
-// |   Widget Type (4 bytes)  |    Quantity (4 bytes)    |
-// +--------------------------+--------------------------+
 'use strict';
 
+var app = require('express')();
+var Buffers = require('buffers');
+var http = require('http');
+var crypto = require('crypto');
 
-function WidgetRouter(dispatchTable) {
-  this._dispatchTable = dispatchTable;
-}
-WidgetRouter.prototype.fulfillOrder = function(orderId, items) {
-  for (var i = 0; i < items.length; ++i) {
-    var widget = items[i].widget, quantity = items[i].quantity;
-    var center = this._dispatchTable[widget];
-    if (!center) {
-      var e = new Error('No fulfillment center for widget type ' + widget);
-      e.widget = widget;
-      throw e;
-    }
-    center.fulfillOrder(widget, quantity, orderId);
-  }
-}
+var slices = [];
+var maxClients = parseInt(process.env.CLIENTS) || 100;
 
-function FulfillmentCenter(id) {
-  this._id = id;
-}
-FulfillmentCenter.prototype.fulfillOrder = function(widget, quantity, orderId) {
-  console.log('Center %s: %d widgets of type %d ordered (Order #%d)',
-              this._id, quantity, widget, orderId);
+var mockHandleOrder = function (orderBuf, cb) {
+  cb();
 };
 
-var north = new FulfillmentCenter('North');
-var east = new FulfillmentCenter('East');
-var south = new FulfillmentCenter('South');
-var west = new FulfillmentCenter('West');
-var widgetRoutes = { 0 : north, 1: north, 2: south, 3: west, 4: east };
-var router = new WidgetRouter(widgetRoutes);
+app.route('/order').post(function (req, res, next) {
+  if (!req.accepts('binary/octet-stream')) {
+    res.writeHead(406);
+    res.end();
+    next();
+  }
+  var orderBufs = Buffers();
+  req.on('data', function (d) { orderBufs.push(d); });
+  req.on('end', function () {
+    mockHandleOrder(orderBufs, function (err, result) {
+      var firstTenBytes = new Buffer(10);
+      orderBufs.copy(firstTenBytes, 0, 10);
+      slices.push(firstTenBytes);
+      //slices.push(orderBufs.slice(0, 10));
+      if (err) {
+        res.statusCode(500);
+        res.end('Internal error: ' + err);
+        return;
+      }
+      res.end('Order accepted');
+      next();
+    });
+  });
+});
 
-router.fulfillOrder(12345, [ {'widget': 4, 'quantity': 1 },
-                             {'widget': 2, 'quantity': 11 } ]);
+var server = app.listen(3000, function () {
+  console.log('listening');
+  startMockClients();
+});
+
+// Mock
+function startMockClients() {
+  var buf = crypto.pseudoRandomBytes(9000);
+  function runNewMockClient(cb) {
+    http.request({ port: 3000, path: '/order', method: 'POST' },
+      function (res) {
+        res.on('end', function () {
+          if (res.statusCode !== 200) {
+            console.log('Client got HTTP ' + res.statusCode);
+            cb(new Error('Order not accepted (' + res.statusCode + ')'));
+          } else {
+            cb();
+          }
+        });
+        res.resume();
+      }
+    ).end(buf);
+  }
+
+  var clients = 0;
+  function startNewClientIfNeeded(err) {
+    if (clients < maxClients) {
+      ++clients;
+      runNewMockClient(startNewClientIfNeeded);
+    } else {
+      console.log('Done');
+      server.close();
+    }
+  }
+  startNewClientIfNeeded();
+}

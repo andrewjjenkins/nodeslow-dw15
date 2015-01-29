@@ -1,5 +1,5 @@
+'use strict';
 var colors = require('colors/safe');
-colors = require('colors/safe');
 
 var RUNCOUNT = parseInt(process.env.RUNCOUNT) || 1e6;
 
