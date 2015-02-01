@@ -2,7 +2,7 @@ var http = require('http');
 
 // Run this with --expose_gc.  But if you don't, don't crash.
 if (!global.gc) {
-   global.gc = function () {};
+   global.gc = function () { console.log('Cannot force gc'); };
 }
 
 function processTheRequest(req) {
