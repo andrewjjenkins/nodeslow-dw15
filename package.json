@@ -9,6 +9,7 @@
     "benchmark": "^1.0.0",
     "buffers": "^0.1.1",
     "colors": "^1.0.3",
-    "express": "^4.11.0"
+    "express": "^4.11.0",
+    "flamegraph": "^0.6.0"
   }
 }
