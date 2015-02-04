@@ -6,10 +6,6 @@
   "author": "Andrew Jenkins <andrewjjenkins@gmail.com>",
   "license": "BSD",
   "dependencies": {
-    "benchmark": "^1.0.0",
-    "buffers": "^0.1.1",
-    "colors": "^1.0.3",
-    "express": "^4.11.0",
-    "flamegraph": "^0.6.0"
+    "benchmark": "^1.0.0"
   }
 }
