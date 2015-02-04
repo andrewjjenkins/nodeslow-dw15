@@ -31,12 +31,12 @@ XactionSummary.prototype.store = function (data) {
     data.copy(summaryBuf, 0, 10);
     this.xactions.push(summaryBuf);
   } else if (strategy === 'copyPrealloc') {
-    var summaryBuf = this.buf.slice(this.bufCursor, 10);
+    var summaryBuf = this.buf.slice(this.bufCursor, this.bufCursor + 10);
     data.copy(summaryBuf, 0, 10);
     this.bufCursor += 10;
     this.xactions.push(summaryBuf);
   } else if (strategy === 'copyPreallocNoSlice') {
-    data.copy(this.buf, this.bufCursor, 10);
+    data.copy(this.buf, this.bufCursor, 0, this.bufCursor + 10);
     this.bufCursor += 10;
   }
 };
