@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "How to (not) make node.js slow (DeveloperWeek 2015 talk)",
   "main": "index.js",
-  "author": "Andrew Jenkins <andrewjjenkins@gmail.com>",
+  "author": "Andrew Jenkins <andrewj@f5.com>",
   "license": "BSD",
   "dependencies": {
     "benchmark": "^1.0.0"
